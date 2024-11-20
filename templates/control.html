@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Robot Control Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -77,9 +78,37 @@
             aspect-ratio: 16/9;
             border-radius: 20px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             color: #94a3b8;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-feed img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* This will fill the container */
+            position: absolute;
+            /* Ensures the image fills the entire container */
+            top: 0;
+            left: 0;
+        }
+
+        .video-stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(19, 19, 43, 0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            display: flex;
+            gap: 16px;
+            color: #94a3b8;
+            z-index: 10;
         }
 
         .controls-section {
@@ -161,7 +190,11 @@
 
         <div class="control-panel">
             <div class="video-feed">
-                <p>Video Feed Placeholder</p>
+                <img id="videoFeed" src="data:image/jpeg;base64,/9j/4AAQSkZJRg==" alt="Video stream">
+                <div class="video-stats">
+                    <span>Latency: <span id="latency">0</span>ms</span>
+                    <span>FPS: <span id="fps">0</span></span>
+                </div>
             </div>
 
             <div class="controls-section">
@@ -187,6 +220,39 @@
     </div>
 
     <script>
+        // Socket.IO initialization and video feed handling
+        const socket = io();
+        const videoFeed = document.getElementById('videoFeed');
+        const latencySpan = document.getElementById('latency');
+        const fpsSpan = document.getElementById('fps');
+
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        socket.on('frame', (data) => {
+            const currentTime = performance.now();
+
+            // Update video frame
+            videoFeed.src = `data:image/jpeg;base64,${data.data}`;
+
+            // Calculate and update latency
+            const latency = Math.round(currentTime - lastFrameTime);
+            latencySpan.textContent = latency;
+
+            // Calculate FPS
+            frameCount++;
+            if (currentTime - lastFpsUpdate >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (currentTime - lastFpsUpdate));
+                fpsSpan.textContent = fps;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
+
+            lastFrameTime = currentTime;
+        });
+
+        // Gamepad handling
         let gamepadInterval;
         const indicator = document.getElementById('joystickIndicator');
         const statusText = document.getElementById('joystickStatus');

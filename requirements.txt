@@ -16,3 +16,6 @@ simple-websocket
 # Video Processing
 opencv-python
 numpy
+
+# Stream
+pyzmq
