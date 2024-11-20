@@ -81,7 +81,7 @@ To run the application and expose it using `ngrok`, you can use the [`server.py`
 
 ## License
 
-This project is licensed under the MIT License. See the (LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgements
 
