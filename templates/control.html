@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Control Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background-color: #0B0B2A;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #B347FF, #47F3FF);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 16px;
+        }
+
+        .button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .home-button {
+            background: linear-gradient(90deg, #B347FF, #47F3FF);
+            color: white;
+        }
+
+        .logout-button {
+            background: #dc3545;
+            color: white;
+        }
+
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 24px;
+            margin-top: 40px;
+        }
+
+        .video-feed {
+            background-color: #13132B;
+            aspect-ratio: 16/9;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+        }
+
+        .controls-section {
+            background: #13132B;
+            padding: 32px;
+            border-radius: 20px;
+        }
+
+        .controls-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 24px;
+            color: #B347FF;
+            font-weight: 600;
+        }
+
+        .joystick-status {
+            background: #1B1B3A;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            color: #94a3b8;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #28a745;
+        }
+
+        .joystick-data {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .data-label {
+            margin-bottom: 8px;
+        }
+
+        .data-value {
+            font-family: monospace;
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
+
+        .operator-info {
+            background: #1B1B3A;
+            padding: 20px;
+            border-radius: 12px;
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Robot Teleoperation System</h1>
+            <div class="nav-buttons">
+                <a href="{{ url_for('index') }}" class="button home-button">Home</a>
+                <a href="{{ url_for('logout') }}" class="button logout-button">Logout</a>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="video-feed">
+                <p>Video Feed Placeholder</p>
+            </div>
+
+            <div class="controls-section">
+                <h2>Control Status</h2>
+                <div class="joystick-status">
+                    <div class="connection-status">
+                        <div class="status-indicator" id="joystickIndicator"></div>
+                        <span id="joystickStatus">No Gamepad Detected</span>
+                    </div>
+
+                    <div class="joystick-data">
+                        <div class="data-label">Joystick Data:</div>
+                        <div class="data-value" id="axisValues">Axes: Waiting for data...</div>
+                        <div class="data-value" id="buttonValues">Buttons: Waiting for data...</div>
+                    </div>
+                </div>
+
+                <div class="operator-info">
+                    Operator: {{ current_user.username }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gamepadInterval;
+        const indicator = document.getElementById('joystickIndicator');
+        const statusText = document.getElementById('joystickStatus');
+        const axisValues = document.getElementById('axisValues');
+        const buttonValues = document.getElementById('buttonValues');
+
+        function updateGamepadDisplay(gamepad) {
+            if (gamepad) {
+                statusText.textContent = `Connected: ${gamepad.id}`;
+                indicator.style.backgroundColor = '#28a745';
+
+                const axes = Array.from(gamepad.axes).map(axis => axis.toFixed(2));
+                axisValues.textContent = `Axes:\n[${axes.join(',')}]`;
+
+                const buttons = Array.from(gamepad.buttons).map(button => button.pressed ? 1 : 0);
+                buttonValues.textContent = `Buttons: [${buttons.join(',')}]`;
+            } else {
+                statusText.textContent = 'No Gamepad Detected';
+                indicator.style.backgroundColor = '#dc3545';
+                axisValues.textContent = 'Axes: Waiting for data...';
+                buttonValues.textContent = 'Buttons: Waiting for data...';
+            }
+        }
+
+        function pollGamepad() {
+            const gamepads = navigator.getGamepads();
+            for (const gamepad of gamepads) {
+                if (gamepad) {
+                    updateGamepadDisplay(gamepad);
+                    break;
+                }
+            }
+        }
+
+        window.addEventListener("gamepadconnected", (e) => {
+            console.log("Gamepad connected:", e.gamepad);
+            clearInterval(gamepadInterval);
+            gamepadInterval = setInterval(pollGamepad, 50);
+        });
+
+        window.addEventListener("gamepaddisconnected", (e) => {
+            console.log("Gamepad disconnected:", e.gamepad);
+            clearInterval(gamepadInterval);
+            updateGamepadDisplay(null);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const gamepads = navigator.getGamepads();
+            for (const gamepad of gamepads) {
+                if (gamepad) {
+                    console.log("Gamepad already connected:", gamepad);
+                    gamepadInterval = setInterval(pollGamepad, 50);
+                    break;
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
